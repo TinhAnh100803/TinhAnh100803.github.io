@@ -1,153 +1,153 @@
 [
 {
-	"uri": "//localhost:1313/",
+	"uri": "/",
 	"title": "Create Static Website with Email Integration using AWS Serverless",
 	"tags": [],
 	"description": "",
 	"content": "Create Static Website with Email Integration using AWS Serverless Overview In this lab, you will learn how to deploy a static website (HTML/CSS) containing a contact form, upload it to AWS S3, connect the form to AWS Lambda and API Gateway, and use Amazon SES to send emails when users fill out the form.\nContent Introduce Preparation Deploy static website to S3 Create Lambda Function to handle sending emails Create API Gateway to connect frontend Clean up resources "
 },
 {
-	"uri": "//localhost:1313/4-s3log/4.1-updateiamrole/",
+	"uri": "/4-s3log/4.1-updateiamrole/",
 	"title": "Access Lambda and create a new function",
 	"tags": [],
 	"description": "",
 	"content": "Accessing Lambda Access the Lambda service admin interface Click the Create function button Select: Author from scratch\nFunction name: SendContactEmail\nRuntime: Python 3.12\nPermissions: chọn Create a new role with basic Lambda permissions\n4.Click Create function.\n"
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/3.1-public-instance/",
+	"uri": "/3-accessibilitytoinstances/3.1-public-instance/",
 	"title": "Create a new Bucket on Amazon S3",
 	"tags": [],
 	"description": "",
 	"content": "Overview: Amazon Simple Storage Service (Amazon S3) is an on-demand, scalable object storage service that delivers the highest levels of data availability, security, and performance.\nS3 is built to meet the needs of customers of all sizes and industries, and can be used to store and protect any amount of data.\nS3 can be used for a wide range of use cases, including data warehouses, websites, mobile applications, backup and restore, archiving, enterprise applications, IoT devices, and big data analytics. Additionally, Amazon S3 provides easy-to-use management features that allow you to organize your data and configure access controls to meet your specific business, organizational, and compliance needs.\nAmazon S3 is designed to provide 99.9999999999% (11 9’s) durability and stores data for millions of applications for companies around the world.\nFirst, we will create an S3 bucket: Go to AWS Management Console. Search for S3. Select S3. In the S3 interface, select Create bucket. In the Create bucket interface: Bucket name: enter aws-first-cloud-journey.\nAWS Region: select the region you want.\nFor Object Ownership, select ACLs disabled (recommended).\nNote: Since Bucket name is globally unique, using the same name as above will result in a message “Bucket with the same name already exists”. Therefore, you need to add a few numbers after it to make your Bucket name fit the policy.\nUncheck \u0026ldquo;Block all public access\u0026rdquo; in the Object Ownership \u0026amp; Permissions section Click Create bucket to initialize. "
 },
 {
-	"uri": "//localhost:1313/5-portfwd/5.1-createapi/",
+	"uri": "/5-portfwd/5.1-createapi/",
 	"title": "Create API Gateway",
 	"tags": [],
 	"description": "",
 	"content": " Access the API Gateway Console Select Create API Select HTTP API -\u0026gt; Click Build Enter API name contact-form-api Integrations click Add integration select lambda and select your Lambda fuction. Click Next\nChange Method from ANY → POST Change Resource path from /SendContactEmail → /send-email Click Next\nDefine stages - optional In this step, continue to click Next Check the information again and click Create After pressing Create, you will get the official invoke URL "
 },
 {
-	"uri": "//localhost:1313/1-introduce/",
+	"uri": "/1-introduce/",
 	"title": "Introduction",
 	"tags": [],
 	"description": "",
 	"content": "Static website with contact form processing is a popular model in building simple, lightweight, easy-to-deploy websites such as company introduction pages, personal portfolios or landing pages to collect customer feedback.\nIn this workshop, you will be guided on how to deploy a static website using Amazon S3 for storage, CloudFront for global content delivery and secure connection via HTTPS. In particular, the contact form will not need a traditional backend but instead use Serverless architecture including:\nAmazon API Gateway: routes requests from forms AWS Lambda: processes form content Amazon SES: sends email notifications about contact content You will learn how to:\nBuild a static and public website on S3 Deliver content via CDN (CloudFront) with HTTPS Create a serverless API to handle form submissions from clients Send automated emails via SES Leverage serverless cloud infrastructure "
 },
 {
-	"uri": "//localhost:1313/2-prerequiste/2.1-createec2/",
+	"uri": "/2-prerequiste/2.1-createec2/",
 	"title": "Prepare website source code",
 	"tags": [],
 	"description": "",
 	"content": "In this step, you need to prepare a website source code containing a simple HTML form, used to deploy to Amazon S3.\nYou can download the sample source code at here\n"
 },
 {
-	"uri": "//localhost:1313/5-portfwd/5.2-configuration-http/",
+	"uri": "/5-portfwd/5.2-configuration-http/",
 	"title": "Enable CORS for Route",
 	"tags": [],
 	"description": "",
 	"content": " Open the created API Gateway, select the API you just created contact-form-api, Go to the Routes menu In the left column, select CORS Configure CORS: Access-Control-Allow-Origin: * Access-Control-Allow-Methods: select POST, OPTIONS Access-Control-Allow-Headers: content-type Click Save\n"
 },
 {
-	"uri": "//localhost:1313/2-prerequiste/",
+	"uri": "/2-prerequiste/",
 	"title": "Preparation ",
 	"tags": [],
 	"description": "",
 	"content": "\nNội dung Prepare website source code "
 },
 {
-	"uri": "//localhost:1313/4-s3log/4.2-creates3bucket/",
+	"uri": "/4-s3log/4.2-creates3bucket/",
 	"title": "Set up email handling code",
 	"tags": [],
 	"description": "",
 	"content": " After creating the function, you will be taken to the detail page. Scroll down to the code section Source Replace all default content with the following code: import json\rimport boto3\rimport os\rses = boto3.client('ses', region_name='ap-southeast-1')\rdef lambda_handler(event, context):\r# Xử lý preflight CORS (OPTIONS request)\rif event['requestContext']['http']['method'] == 'OPTIONS':\rreturn {\r'statusCode': 200,\r'headers': {\r'Access-Control-Allow-Origin': '*',\r'Access-Control-Allow-Headers': 'Content-Type',\r'Access-Control-Allow-Methods': 'OPTIONS,POST'\r},\r'body': json.dumps('Preflight OK')\r}\rbody = json.loads(event['body'])\rname = body.get('name')\remail = body.get('email')\rmessage = body.get('message')\rsubject = f\"Liên hệ mới từ {name}\"\rbody_text = f\"Email: {email}\\n\\nNội dung:\\n{message}\"\r# Gửi email qua SES\rresponse = ses.send_email(\rSource=os.environ['SENDER_EMAIL'],\rDestination={'ToAddresses': [os.environ['RECEIVER_EMAIL']]},\rMessage={\r'Subject': {'Data': subject},\r'Body': {\r'Text': {'Data': body_text}\r}\r}\r)\rreturn {\r'statusCode': 200,\r'headers': {\r'Access-Control-Allow-Origin': '*',\r'Access-Control-Allow-Headers': 'Content-Type',\r'Access-Control-Allow-Methods': 'OPTIONS,POST'\r},\r'body': json.dumps({'message': 'Gửi email thành công!'})\r}\r⚠️ Note:\rSENDER_EMAIL: by email you want to receive mail. RECEIVER_EMAIL:Email you want to receive contact messages (recipient)\r"
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/3.2-private-instance/",
+	"uri": "/3-accessibilitytoinstances/3.2-private-instance/",
 	"title": "Upload source code to bucket",
 	"tags": [],
 	"description": "",
 	"content": " Go to the bucket you just created. Click Upload Select all the files in the extracted folder from contact-form-lab.zip and press upload. "
 },
 {
-	"uri": "//localhost:1313/5-portfwd/5.3-deploy-api/",
+	"uri": "/5-portfwd/5.3-deploy-api/",
 	"title": "ASSEMBLE API URL",
 	"tags": [],
 	"description": "",
 	"content": " Open the script.js file in the website source code. Find the code that calls fetch and replace YOUR_API_GATEWAY_URL with your URL Save the script.js file and re-upload it to S3 Bucket Access the S3 website URL, Enter data into the form Press send, result Sent successfully! Thank you.\nThen check your inbox.\n"
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/",
+	"uri": "/3-accessibilitytoinstances/",
 	"title": "Deploy static website to S3",
 	"tags": [],
 	"description": "",
 	"content": "In this step, we will Upload the prepared static website (HTML/CSS/JS) to AWS so that it can be publicly accessible over the Internet.\nContent 3.1. Create a new Bucket on Amazon S3 3.2. Upload source code to bucket 3.3. Enable Static Website Hosting mode 3.4. Grant public access 3.5. Visit the website\n"
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/3.3-create-bucket/",
+	"uri": "/3-accessibilitytoinstances/3.3-create-bucket/",
 	"title": "Enable Static Website Hosting mode",
 	"tags": [],
 	"description": "",
 	"content": " Go to the Properties tab of the bucket Scroll down to Static website hosting Click Edit Enable hosting\nIndex document: enter index.html\nClick Save changes\n"
 },
 {
-	"uri": "//localhost:1313/4-s3log/4.3-creategwes3/",
+	"uri": "/4-s3log/4.3-creategwes3/",
 	"title": "Give Lambda permission to send emails",
 	"tags": [],
 	"description": "",
 	"content": "Lambda needs access to SES:SendEmail.\nGo to Configuration tab → select Permissions Click on role name in the Execution role section In the IAM Role page → select Add permissions → Attach policies Find and tick: AmazonSESFullAccess or create a separate policy that only grants the ses:SendEmail permission. Click Add permissions "
 },
 {
-	"uri": "//localhost:1313/4-s3log/4.4-configsessionlogs/",
+	"uri": "/4-s3log/4.4-configsessionlogs/",
 	"title": "Check operation",
 	"tags": [],
 	"description": "",
 	"content": " Go to the Test tab Click Configure test event Event name: testSend\nEvent JSON:\n{\r\"body\": \"{\\\"name\\\":\\\"Test User\\\",\\\"email\\\":\\\"test@example.com\\\",\\\"message\\\":\\\"Hello from the form!\\\"}\"\r}\rClick Test "
 },
 {
-	"uri": "//localhost:1313/4-s3log/",
+	"uri": "/4-s3log/",
 	"title": "Create Lambda Function to handle sending emails",
 	"tags": [],
 	"description": "",
 	"content": "Create an AWS Lambda function that uses Amazon SES to send an email, receiving data from a contact form submitted via API Gateway.\nContents: Access Lambda and create a new function Set up email handling code Give Lambda permission to send emails Check operation "
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/3.4-public-read/",
+	"uri": "/3-accessibilitytoinstances/3.4-public-read/",
 	"title": "Grant public access",
 	"tags": [],
 	"description": "",
 	"content": " Assign Bucket Policy Go to the Permissions tab and scroll down to Bucket policy Paste the following code, remembering to replace YOUR_BUCKET_NAME: {\r\"Version\": \"2012-10-17\",\r\"Statement\": [\r{\r\"Sid\": \"PublicRead\",\r\"Effect\": \"Allow\",\r\"Principal\": \"*\",\r\"Action\": \"s3:GetObject\",\r\"Resource\": \"arn:aws:s3:::YOUR_BUCKET_NAME/*\"\r}\r]\r}\rAfter pasting, click Save changes.\n"
 },
 {
-	"uri": "//localhost:1313/5-portfwd/",
+	"uri": "/5-portfwd/",
 	"title": "Create API Gateway to connect frontend",
 	"tags": [],
 	"description": "",
 	"content": "Create an API endpoint so that the form on the static website (S3) can send data to Lambda, which in turn sends emails using SES.\nContent Create API Gateway Enable CORS for Route ASSEMBLE API URL "
 },
 {
-	"uri": "//localhost:1313/3-accessibilitytoinstances/3.5/",
+	"uri": "/3-accessibilitytoinstances/3.5/",
 	"title": "Visit the website",
 	"tags": [],
 	"description": "",
 	"content": " Go back to the Properties tab Find the Static website hosting item, there will be a link in the bucket website endpoint Click on that link to check the website. "
 },
 {
-	"uri": "//localhost:1313/6-cleanup/",
+	"uri": "/6-cleanup/",
 	"title": "Clean up resources  ",
 	"tags": [],
 	"description": "",
 	"content": "We will follow these steps to delete the resources we created in this exercise.\nDelete S3 Bucket Access S3 Console Select the bucket you created\nClick Empty to delete all files in the bucket\nReturn to the bucket list, tick that bucket\nClick Delete → enter the bucket name to confirm → Delete\nDelete Lambda Function Access Lambda Console Select the function you created\nClick Actions → Delete\nConfirm delete\nDelete API Gateway Access API Gateway Console Select APIs → Select the API you created\nClick Actions → Delete\nConfirm delete\nDelete SES Email Access SES Console\nSelect Verified Identities\nTick your verified email\nClick Delete identity\n"
 },
 {
-	"uri": "//localhost:1313/categories/",
+	"uri": "/categories/",
 	"title": "Categories",
 	"tags": [],
 	"description": "",
 	"content": ""
 },
 {
-	"uri": "//localhost:1313/tags/",
+	"uri": "/tags/",
 	"title": "Tags",
 	"tags": [],
 	"description": "",
